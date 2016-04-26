@@ -12,7 +12,11 @@ let rec evalSteps m =
         evalSteps m'
 
 [<EntryPoint>]
-let main argv = 
-    evalSteps (Machine.initial Value.emptyEnv XLamX.Examples.e3)
+let main argv =
+    let expr = XLamX.Examples.e3
+    let t = XLamX.Typechecking.TC.infer XLamX.Typechecking.TC.emptyEnv expr
+    printfn "Type %A" t
+    let m = Machine.initial Value.emptyEnv expr
+    evalSteps m
     0 // return an integer exit code
 

@@ -30,22 +30,29 @@ module Stepper =
        state := updateState (!state)
        displayState (!state) a
 
-   let initialize (a : Label) =
-        state := Stepping (Machine.initial Value.emptyEnv XLamX.Examples.e3)
-        displayState (!state) a
+   let initialize (ev : Label, ty : Label) =
+        let expr = XLamX.Examples.e3
+        let t = Typechecking.TC.infer Typechecking.TC.emptyEnv expr
+        let m = Machine.initial Value.emptyEnv expr
+        state := Stepping m
+        displayState (!state) ev
+        ty.Text <- sprintf "Type: %A" t
+
 
 
 type App() = 
     inherit Application()
     let stack = StackLayout(VerticalOptions = LayoutOptions.Center, Spacing = 20.0)
+    let typeArea = Label(HorizontalTextAlignment = TextAlignment.Start)
     let label = Label(HorizontalTextAlignment = TextAlignment.Center, Text = "XLamX")
-    let evalArea = Label(HorizontalTextAlignment = TextAlignment.Start);
+    let evalArea = Label(HorizontalTextAlignment = TextAlignment.Start)
     let button = Button(Text = "|=>")
     do 
         stack.Children.Add(label)
+        stack.Children.Add(typeArea)
         stack.Children.Add(evalArea)
         stack.Children.Add(button)
-        Stepper.initialize (evalArea)
+        Stepper.initialize (evalArea, typeArea)
         button.Clicked.AddHandler (System.EventHandler (fun sender args -> Stepper.clickyclicky evalArea))
         base.MainPage <- ContentPage(Content = stack)
 

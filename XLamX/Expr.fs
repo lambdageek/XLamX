@@ -2,7 +2,7 @@
 
   type Type =
       | BaseT
-      | ArrT of Type * Type
+      | ArrT of (Type * Type)
   
   type var = string
 
