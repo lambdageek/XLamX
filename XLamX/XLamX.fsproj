@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Expr.fs" />
+    <Compile Include="TypeSubst.fs" />
     <Compile Include="Typechecking.fs" />
     <Compile Include="Evaluation.fs" />
     <Compile Include="Examples.fs" />

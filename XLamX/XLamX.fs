@@ -31,7 +31,7 @@ module Stepper =
        displayState (!state) a
 
    let initialize (ev : Label, ty : Label) =
-        let expr = XLamX.Examples.e3
+        let expr = XLamX.Examples.e5
         let t = Typechecking.TC.infer Typechecking.TC.emptyEnv expr
         let m = Machine.initial Value.emptyEnv expr
         state := Stepping m

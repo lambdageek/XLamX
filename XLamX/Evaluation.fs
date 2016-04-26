@@ -1,21 +1,15 @@
 ﻿namespace XLamX.Evaluation
-
-  module RuntimeErrors =
-    type EvalErrorMsg =
-        | UnboundVariable of string
-        | Unimplemented of string
-
-    exception EvalError of EvalErrorMsg
-
-    let evalError e = raise (EvalError e)
-
+  open XLamX.Expr
 
   module Value =
     open XLamX.Expr
     type Value =
         | ClosureV of Closure
+        | PClosureV of PolyClosure
 
     and Closure = (Env * (var * Type * Expr))
+
+    and PolyClosure = (Env * (tyvar * Kind * Expr))
 
     and Env = (var * Value) list
 
@@ -27,7 +21,19 @@
         match env with
           | ((y,v)::env') when x = y -> Some v
           | (_::env') -> lookupEnv env' x
-          | [] -> None 
+          | [] -> None
+
+  module RuntimeErrors =
+    type EvalErrorMsg =
+        | UnboundVariable of string
+        | ExpectedClosure of Value.Value
+        | ExpectedPolyClosure of Value.Value
+        | Unimplemented of string
+
+    exception EvalError of EvalErrorMsg
+
+    let evalError e = raise (EvalError e)
+
 
   module Eval =
     open XLamX.Expr
@@ -42,13 +48,23 @@
               let v1 = eval env e1
               let v2 = eval env e2
               match v1 with
-                ClosureV (env', (x, _t, ebody)) ->
+                | ClosureV (env', (x, _t, ebody)) ->
                     eval (extendEnv env' x v2) ebody
+                | _ -> evalError (ExpectedClosure v1)
           | Var x ->
               match lookupEnv env x with
                 | Some v -> v
                 | None -> evalError (UnboundVariable x)
-          (*          | _ -> evalError (Unimplemented "like... everything") *)
+          | TLam ake ->
+              PClosureV (env, ake)
+          | TApp (e, t) ->
+              let v1 = eval env e
+              match v1 with
+                | PClosureV (env', (a, _k, e')) ->
+                  let e'' = XLamX.TypeSubst.tySubst t a e'
+                  eval env e''
+                | _ -> evalError (ExpectedPolyClosure v1)
+          (* | _ -> evalError (Unimplemented "like... everything") *)
 
   module Machine =
     open XLamX.Expr
@@ -63,6 +79,7 @@
     and Frame =
         | AppF1 of Expr
         | AppF2 of Value
+        | TAppF of Type
     
 
     type Cmd = 
@@ -86,6 +103,8 @@
               match lookupEnv env x with
                 | Some v -> (env, RetC (v, k))
                 | None -> evalError (UnboundVariable x)
+          | (env, PushC (TLam ake, k)) -> (env, RetC (PClosureV (env, ake), k))
+          | (env, PushC (TApp (e, t), k)) -> (env, PushC (e, FrameK (TAppF t, k)))
           | (env, (RetC (_, HaltK) as fin)) -> (env, fin) (* just loop *)
           | (env, RetC (v, FrameK (f, k))) ->
               match f with
@@ -93,4 +112,9 @@
                 | AppF2 vlam ->
                     match vlam with
                       | ClosureV (env', (x, _t, ebody)) -> (extendEnv env' x v, PushC (ebody, AwaitK (env, k)))
+                      | _ -> evalError (ExpectedClosure vlam)
+                | TAppF t ->
+                    match v with
+                      | PClosureV (env', (a, _k, ebody)) -> (env', PushC (XLamX.TypeSubst.tySubst t a ebody, AwaitK (env, k)))
+                      | _ -> evalError (ExpectedPolyClosure v)
           | (env, RetC (v, AwaitK (env', k))) -> (env', RetC (v, k))
