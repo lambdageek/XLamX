@@ -94,6 +94,12 @@
        match m with 
         | (env, RetC (v, HaltK)) -> Some v
         | _ -> None
+    
+    (* don't bother restoring this env if we're just going to restore another one later *)
+    let pushAwaitK (env : Env) (k : Cont) = 
+        match k with
+          | AwaitK _ -> k
+          | _ -> AwaitK (env, k)
 
     let rec step (m : Machine) : Machine =
         match m with
@@ -111,10 +117,10 @@
                 | AppF1 e2 -> (env, PushC (e2, FrameK (AppF2 v, k)))
                 | AppF2 vlam ->
                     match vlam with
-                      | ClosureV (env', (x, _t, ebody)) -> (extendEnv env' x v, PushC (ebody, AwaitK (env, k)))
+                      | ClosureV (env', (x, _t, ebody)) -> (extendEnv env' x v, PushC (ebody, pushAwaitK env k))
                       | _ -> evalError (ExpectedClosure vlam)
                 | TAppF t ->
                     match v with
-                      | PClosureV (env', (a, _k, ebody)) -> (env', PushC (XLamX.TypeSubst.tySubst t a ebody, AwaitK (env, k)))
+                      | PClosureV (env', (a, _k, ebody)) -> (env', PushC (XLamX.TypeSubst.tySubst t a ebody, pushAwaitK env k))
                       | _ -> evalError (ExpectedPolyClosure v)
           | (env, RetC (v, AwaitK (env', k))) -> (env', RetC (v, k))
