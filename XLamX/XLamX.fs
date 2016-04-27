@@ -8,15 +8,17 @@ module Stepper =
    type State =
      | Finished of Value.Value
      | Stepping of Machine.Machine
+     | TypeError
      | Empty
    
    let (state : State ref) = ref Empty 
 
    let displayState s (a : Label) =
-       match s with
-         | Empty -> a.Text <- "(Not initialized)"
-         | Stepping m -> a.Text <- sprintf "{Machine %A}" m
-         | Finished v -> a.Text <- sprintf "{Value %A}" v
+       a.Text <- match s with
+                   | Empty -> "(Not initialized)"
+                   | TypeError -> "Unsafe to run code that doesn't type check!" 
+                   | Stepping m -> sprintf "Machine State:\n%A" m
+                   | Finished v -> sprintf "Machine Finished with Answer:\n%A" v
 
    let updateState s =
        match s with
@@ -39,7 +41,7 @@ module Stepper =
            ty.Text <- sprintf "Type: %A" t
        with
          | XLamX.Typechecking.StaticsErrors.TypeError err ->
-             state := Empty
+             state := TypeError
              displayState (!state) ev
              ty.Text <- sprintf "Type Error: %A" err
 
@@ -51,14 +53,14 @@ module Stepper =
 
 type EvalPage(name : string, expr : XLamX.Expr.Expr) =
     inherit ContentPage()
-    let stack = StackLayout(VerticalOptions = LayoutOptions.Center, Spacing = 20.0)
-    let resetButton = Button (Text = "Start Again")
-    let typeArea = Label(HorizontalTextAlignment = TextAlignment.Start)
-    let evalArea = Label(HorizontalTextAlignment = TextAlignment.Start)
-    let steppybutton = Button(Text = "|=>")
+    let stack = StackLayout(Spacing = 20.0)
+    let resetButton = Button (Text = "Start Again", VerticalOptions = LayoutOptions.Start)
+    let typeArea = Label(HorizontalTextAlignment = TextAlignment.Start, VerticalOptions = LayoutOptions.Center)
+    let evalArea = Label(HorizontalTextAlignment = TextAlignment.Start, VerticalOptions = LayoutOptions.CenterAndExpand)
+    let steppybutton = Button(Text = "|=>", VerticalOptions = LayoutOptions.End)
     do 
-        stack.Children.Add(typeArea)
         stack.Children.Add(resetButton)
+        stack.Children.Add(typeArea)
         stack.Children.Add(evalArea)
         stack.Children.Add(steppybutton)
         Stepper.initialize (expr, evalArea, typeArea)
