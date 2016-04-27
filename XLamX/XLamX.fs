@@ -45,30 +45,37 @@ module Stepper =
 
    type example = string * XLamX.Expr.Expr
 
-   let handy (navvy : NavigationPage) f _ (args : SelectedItemChangedEventArgs) = 
+   let handy (navvy : MasterDetailPage) f _ (args : SelectedItemChangedEventArgs) = 
      let (name, ex) = downcast args.SelectedItem
-     ignore (navvy.PushAsync (f name ex))
+     f name ex
+     navvy.IsPresented <- false
 
-type EvalPage(name : string, expr : XLamX.Expr.Expr) =
+type EvalPage() =
     inherit ContentPage()
     let stack = StackLayout(VerticalOptions = LayoutOptions.Center, Spacing = 20.0)
     let resetButton = Button (Text = "Start Again")
     let typeArea = Label(HorizontalTextAlignment = TextAlignment.Start)
     let evalArea = Label(HorizontalTextAlignment = TextAlignment.Start)
     let steppybutton = Button(Text = "|=>")
+    let mutable expr = None
     do 
         stack.Children.Add(typeArea)
         stack.Children.Add(resetButton)
         stack.Children.Add(evalArea)
         stack.Children.Add(steppybutton)
-        Stepper.initialize (expr, evalArea, typeArea)
-        resetButton.Clicked.AddHandler (System.EventHandler (fun _ _ -> Stepper.initialize (expr, evalArea, typeArea)))
+        resetButton.Clicked.AddHandler (System.EventHandler (fun _ _ -> 
+                                                              match expr with
+                                                                | Some e -> Stepper.initialize (e, evalArea, typeArea)
+                                                                | None -> ()))
         steppybutton.Clicked.AddHandler (System.EventHandler (fun sender args -> Stepper.clickyclicky evalArea))
+    member public self.LookAliveTheUsersHere (name : string, newExpr : XLamX.Expr.Expr) =
+        expr <- Some newExpr
+        Stepper.initialize (newExpr, evalArea, typeArea)
         base.Content <- stack
         base.Title <- sprintf "XLamX: %s" name
 
-type ExamplesPage (navvy : NavigationPage) =
-    inherit ContentPage()
+type ExamplesPage (navvy : MasterDetailPage, samply : EvalPage) =
+    inherit ContentPage(Title = "Select an example")
     let listy = ListView()
     do
         listy.ItemsSource <- [("e1", XLamX.Examples.e1);
@@ -76,15 +83,18 @@ type ExamplesPage (navvy : NavigationPage) =
                               ("e5", XLamX.Examples.e5);
                               ("e6bad", XLamX.Examples.e6bad)
                              ]
-        listy.ItemSelected.AddHandler (System.EventHandler<_> (Stepper.handy navvy (fun name expr -> new EvalPage (name, expr))))
-        base.Content <- listy
-        base.Title <- "Select an example"
-
+        listy.ItemSelected.AddHandler (System.EventHandler<_> (Stepper.handy navvy (fun name expr -> samply.LookAliveTheUsersHere (name, expr))))
+        let stk = new StackLayout ()
+        stk.Children.Add (listy)
+        base.Content <- stk
 type App() = 
     inherit Application()
-    let navvy = new NavigationPage()
-    let listy = new ExamplesPage (navvy) (*new EvalPage ("e5", XLamX.Examples.e5(*e6bad*))*)
+    let navvy = new MasterDetailPage()
+    let samply = new EvalPage ()
+    let listy = new ExamplesPage (navvy, samply) (*new EvalPage ("e5", XLamX.Examples.e5(*e6bad*))*)
     do
-        ignore (navvy.PushAsync (listy, false))
+        navvy.Master <- listy
+        navvy.Detail <- NavigationPage(samply);
+        navvy.IsPresented <- true;
         base.MainPage <- navvy
 
