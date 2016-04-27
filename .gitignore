@@ -1,0 +1,6 @@
+*~
+/packages/
+/Droid/Resources/Resource.designer.fs
+*/bin/
+*/obj/
+/XLamX.userprefs
