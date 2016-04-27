@@ -31,13 +31,18 @@ module Stepper =
        displayState (!state) a
 
    let initialize (ev : Label, ty : Label) =
-        let expr = XLamX.Examples.e5
-        let t = Typechecking.TC.infer Typechecking.TC.emptyEnv expr
-        let m = Machine.initial Value.emptyEnv expr
-        state := Stepping m
-        displayState (!state) ev
-        ty.Text <- sprintf "Type: %A" t
-
+        let expr = XLamX.Examples.e6bad
+        try
+           let t = Typechecking.TC.infer Typechecking.TC.emptyEnv expr
+           let m = Machine.initial Value.emptyEnv expr
+           state := Stepping m
+           displayState (!state) ev
+           ty.Text <- sprintf "Type: %A" t
+        with
+          | XLamX.Typechecking.StaticsErrors.TypeError err ->
+              state := Empty
+              displayState (!state) ev
+              ty.Text <- sprintf "Type Error: %A" err
 
 
 type App() = 
