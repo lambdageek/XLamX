@@ -71,7 +71,7 @@ type EvalPage(name : string, expr : XLamX.Expr.Expr) =
 
 type ExamplesPage (navvy : NavigationPage) =
     inherit ContentPage()
-    let listy = ListView()
+    let listy = ListView(Header = "Hardcoded Examples:", SeparatorVisibility = SeparatorVisibility.None)
     do
         listy.ItemsSource <- [("e1", XLamX.Examples.e1);
                               ("polyId", XLamX.Examples.polyId);
@@ -80,12 +80,12 @@ type ExamplesPage (navvy : NavigationPage) =
                              ]
         listy.ItemSelected.AddHandler (System.EventHandler<_> (Stepper.handy navvy (fun name expr -> new EvalPage (name, expr))))
         base.Content <- listy
-        base.Title <- "Select an example"
+        base.Title <- "Polymorphic Lambda Calculus Stepper"
 
 type App() = 
     inherit Application()
     let navvy = new NavigationPage()
-    let listy = new ExamplesPage (navvy) (*new EvalPage ("e5", XLamX.Examples.e5(*e6bad*))*)
+    let listy = new ExamplesPage (navvy)
     do
         ignore (navvy.PushAsync (listy, false))
         base.MainPage <- navvy
