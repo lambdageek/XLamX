@@ -14,7 +14,7 @@ let rec evalSteps m =
 [<EntryPoint>]
 let main argv =
     let expr = XLamX.Examples.e5
-    let t = XLamX.Typechecking.TC.infer XLamX.Typechecking.TC.emptyEnv expr
+    let t = XLamX.Typechecking.TC.runTCIO (XLamX.Typechecking.TC.infer expr) XLamX.Typechecking.TC.emptyEnv
     printfn "Type %A" t
     let m = Machine.initial Value.emptyEnv expr
     evalSteps m
